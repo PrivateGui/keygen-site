@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Key Generator</title>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+  </head>
+  <body style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+    <h1>🔐 Key Generator</h1>
+    <p>Complete the hCaptcha to receive your key:</p>
+    <div class="h-captcha" data-sitekey="YOUR_HCAPTCHA_SITE_KEY"></div>
+    <button onclick="generateKey()">Generate Key</button>
+    <p id="result" style="margin-top: 20px;"></p>
+    <script>
+      function generateKey() {
+        const token = hcaptcha.getResponse();
+        if (!token) return alert("Please complete the hCaptcha first.");
+
+        fetch("/api/generate-key", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ captcha: token }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("result").textContent =
+              data.success ? "✅ Your key: " + data.key : "❌ Error: " + data.error;
+            hcaptcha.reset();
+          });
+      }
+    </script>
+  </body>
+</html>
