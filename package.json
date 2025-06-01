@@ -2,7 +2,6 @@
   "name": "vercel-hcaptcha-keys",
   "type": "module",
   "dependencies": {
-    "hcaptcha": "^0.3.0",
     "redis": "^4.6.7"
   }
 }
