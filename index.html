@@ -1,142 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Key Verification System</title>
-  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>One-Time Key Generator</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
+    * { box-sizing: border-box; }
     body {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: #ffffff;
-      min-height: 100vh;
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      color: white;
       display: flex;
       justify-content: center;
       align-items: center;
+      height: 100vh;
       padding: 20px;
     }
-
     .container {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 40px;
-      max-width: 600px;
+      background: rgba(0,0,0,0.5);
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 400px;
       width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
       text-align: center;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      transition: transform 0.3s ease;
     }
-
-    .container:hover {
-      transform: translateY(-5px);
-    }
-
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 20px;
-      background: linear-gradient(90deg, #00ddeb, #ff3e7f);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    p {
-      font-size: 1rem;
-      margin-bottom: 30px;
-      color: #d1d1d1;
-    }
-
-    .h-captcha {
-      margin: 20px auto;
-    }
-
+    h1 { font-size: 22px; margin-bottom: 12px; }
+    p { font-size: 15px; margin-bottom: 20px; }
     button {
-      background: linear-gradient(90deg, #00ddeb, #ff3e7f);
+      width: 100%;
+      background: #00d2ff;
+      background: linear-gradient(to right, #3a7bd5, #00d2ff);
       border: none;
-      padding: 15px 30px;
-      border-radius: 50px;
-      color: #ffffff;
-      font-size: 1.1rem;
+      color: white;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: 0.3s ease;
     }
-
-    button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 15px rgba(0, 221, 235, 0.5);
-    }
-
-    #result {
-      margin-top: 20px;
-      font-size: 1rem;
-      color: #00ddeb;
-      word-break: break-all;
-    }
-
-    @media (max-width: 768px) {
-      .container {
-        padding: 20px;
-      }
-
-      h1 {
-        font-size: 1.8rem;
-      }
-
-      button {
-        padding: 12px 24px;
-        font-size: 1rem;
-      }
-    }
+    button:hover { opacity: 0.85; }
+    #response { margin-top: 20px; word-break: break-word; font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Verify Your Identity</h1>
-    <p>Complete the hCaptcha and generate a unique key to verify on Discord.</p>
-    <form id="captcha-form">
-      <div class="h-captcha" data-sitekey="8618380c-3bc4-4072-9236-796c1a4c9b24"></div>
-      <button type="submit">Generate Key</button>
-    </form>
-    <div id="result"></div>
+    <h1>🔐 Generate Your Access Key</h1>
+    <p>Complete the hCaptcha to get a one-time use key</p>
+    <div class="h-captcha" data-sitekey="8618380c-3bc4-4072-9236-796c1a4c9b24"></div>
+    <br>
+    <button onclick="generateKey()">Generate Key</button>
+    <div id="response"></div>
   </div>
 
+  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
   <script>
-    const form = document.getElementById('captcha-form');
-    const resultDiv = document.getElementById('result');
+    async function generateKey() {
+      const token = hcaptcha.getResponse();
+      if (!token) return alert("Please complete hCaptcha first.");
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const hcaptchaResponse = document.querySelector('textarea[name="h-captcha-response"]').value;
+      const res = await fetch('/api/generate-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
 
-      if (!hcaptchaResponse) {
-        resultDiv.textContent = 'Please complete the hCaptcha.';
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/generate-key', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 'h-captcha-response': hcaptchaResponse }),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          resultDiv.textContent = `Your key: ${data.key}. Use ?verify <key> in Discord.`;
-        } else {
-          resultDiv.textContent = `Error: ${data.message}`;
-        }
-      } catch (error) {
-        resultDiv.textContent = 'Failed to generate key. Try again.';
-      }
-    });
+      const data = await res.json();
+      document.getElementById('response').innerText = data.key
+        ? `✅ Your key: ${data.key}`
+        : `❌ Error: ${data.message}`;
+        
+      hcaptcha.reset();
+    }
   </script>
 </body>
 </html>
