@@ -51,46 +51,46 @@
   </form>
 
   <script>
-    document.getElementById("keyForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
+  document.getElementById("keyForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-      const token = document.querySelector('[name="h-captcha-response"]').value;
+    const token = document.querySelector('[name="h-captcha-response"]').value;
 
-      if (!token) {
-        document.getElementById("result").textContent = "❌ Please complete the captcha.";
+    if (!token) {
+      document.getElementById("result").textContent = "❌ Please complete the captcha.";
+      return;
+    }
+
+    document.getElementById("result").textContent = "⏳ Generating key...";
+
+    try {
+      const res = await fetch("/api/generate-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token })
+      });
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const errorText = await res.text();  // read once only
+        console.error("Non-JSON error:", errorText);
+        document.getElementById("result").textContent = `❌ Server error: ${res.status}`;
         return;
       }
 
-      document.getElementById("result").textContent = "⏳ Generating key...";
+      const data = await res.json();
 
-      try {
-        const res = await fetch("/api/generate-key", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token })
-        });
-
-        let data;
-        try {
-          data = await res.json();
-        } catch {
-          const raw = await res.text();
-          document.getElementById("result").textContent = `❌ Server error: ${res.status}`;
-          console.error("Raw response:", raw);
-          return;
-        }
-
-        if (data.success) {
-          document.getElementById("result").textContent = `✅ Your Key: ${data.key}`;
-        } else {
-          document.getElementById("result").textContent = `❌ ${data.message}`;
-        }
-      } catch (err) {
-        document.getElementById("result").textContent = "❌ Network error. See console.";
-        console.error(err);
+      if (data.success) {
+        document.getElementById("result").textContent = `✅ Your Key: ${data.key}`;
+      } else {
+        document.getElementById("result").textContent = `❌ ${data.message}`;
       }
-    });
-  </script>
 
+    } catch (err) {
+      document.getElementById("result").textContent = "❌ Network error. See console.";
+      console.error(err);
+    }
+  });
+  </script>
 </body>
 </html>
