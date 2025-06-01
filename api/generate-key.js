@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { captcha } = req.body;
   if (!captcha) return res.status(400).json({ success: false, error: "Missing captcha" });
 
-  const hcaptchaSecret = "YOUR_HCAPTCHA_SECRET";
+  const hcaptchaSecret = "ES_21a96b2773da463eb20321bd5c92417d";
 
   const verifyRes = await fetch("https://hcaptcha.com/siteverify", {
     method: "POST",
