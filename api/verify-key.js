@@ -1,15 +1,30 @@
-// Use the same storedKeys set from generate-key.js or put in a shared module
-let storedKeys = new Set(); // This won't persist, but demo only!
+import clientPromise from "../../lib/mongodb";
 
-export default function handler(req, res) {
-  const key = req.query.key;
-  if (!key) return res.status(400).json({ success: false, message: "No key provided" });
-
-  if (storedKeys.has(key)) {
-    // Mark key as used by deleting it
-    storedKeys.delete(key);
-    return res.json({ success: true, message: "Key verified and marked as used." });
-  } else {
-    return res.json({ success: false, message: "Invalid or already used key." });
+export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ success: false, message: "Only GET allowed" });
   }
+
+  const { key } = req.query;
+  if (!key) {
+    return res.status(400).json({ success: false, message: "No key provided" });
+  }
+
+  const client = await clientPromise;
+  const db = client.db("vercel_db");
+  const keys = db.collection("keys");
+
+  const keyData = await keys.findOne({ key });
+
+  if (!keyData) {
+    return res.json({ success: false, message: "❌ Invalid key" });
+  }
+
+  if (keyData.used) {
+    return res.json({ success: false, message: "❌ Already used" });
+  }
+
+  await keys.updateOne({ key }, { $set: { used: true, usedAt: new Date() } });
+
+  return res.json({ success: true, message: "✅ Verified successfully" });
 }
