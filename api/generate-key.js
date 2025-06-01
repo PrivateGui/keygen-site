@@ -1,63 +1,37 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ success: false, message: "Method not allowed" });
+// api/generate-key.js
+const { v4: uuidv4 } = require('uuid');
+const fetch = require('node-fetch');
+
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  const { token } = req.body;
+  const { 'h-captcha-response': hcaptchaResponse } = req.body;
+  const secretKey = 'ES_21a96b2773da463eb20321bd5c92417d'; // Replace with your hCaptcha secret key
 
-  if (!token) {
-    return res.status(400).json({ success: false, message: "Missing captcha token" });
-  }
-
-  // ✅ Verify hCaptcha
+  // Verify hCaptcha
   try {
-    const verifyRes = await fetch("https://hcaptcha.com/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        response: token,
-        secret: "ES_21a96b2773da463eb20321bd5c92417d" // ← REPLACE with your hCaptcha secret
-      }),
+    const verificationResponse = await fetch('https://api.hcaptcha.com/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `response=${hcaptchaResponse}&secret=${secretKey}`,
     });
 
-    const verification = await verifyRes.json();
-    if (!verification.success) {
-      return res.status(400).json({ success: false, message: "Captcha failed" });
+    const verificationData = await verificationResponse.json();
+    if (!verificationData.success) {
+      return res.status(400).json({ success: false, message: 'hCaptcha verification failed' });
     }
-  } catch (err) {
-    console.error("❌ Captcha error:", err);
-    return res.status(500).json({ success: false, message: "Captcha verification failed" });
+
+    // Generate unique key
+    const key = uuidv4();
+    
+    // Store key in Vercel KV (or another database)
+    // For simplicity, assume a temporary in-memory store or use Vercel KV
+    // Example: await kv.set(key, { used: false, expires: Date.now() + 24 * 60 * 60 * 1000 });
+
+    res.status(200).json({ success: true, key });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-
-  // ✅ Generate key
-  const generatedKey = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-  // ✅ MongoDB connection
-  const { MongoClient } = await import("mongodb");
-
-  const mongoURI = "mongodb://mongo:ykDvXACYxKsLzLZsIWyVRkkBoKZhvqUz@yamabiko.proxy.rlwy.net:11372";
-
-  try {
-    const client = new MongoClient(mongoURI, {
-      serverSelectionTimeoutMS: 5000, // faster error detection
-    });
-
-    await client.connect();
-    const db = client.db("keys_db");
-    const keys = db.collection("keys");
-
-    await keys.insertOne({
-      key: generatedKey,
-      used: false,
-      createdAt: new Date(),
-    });
-
-    await client.close();
-
-    return res.status(200).json({ success: true, key: generatedKey });
-
-  } catch (err) {
-    console.error("❌ MongoDB error:", err);
-    return res.status(500).json({ success: false, message: "Database error" });
-  }
-}
+};
