@@ -1,4 +1,4 @@
-import clientPromise from "../../lib/mongodb";
+import clientPromise from "../lib/mongodb";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -14,13 +14,13 @@ export default async function handler(req, res) {
   const db = client.db("vercel_db");
   const keys = db.collection("keys");
 
-  const keyData = await keys.findOne({ key });
+  const keyDoc = await keys.findOne({ key });
 
-  if (!keyData) {
+  if (!keyDoc) {
     return res.json({ success: false, message: "❌ Invalid key" });
   }
 
-  if (keyData.used) {
+  if (keyDoc.used) {
     return res.json({ success: false, message: "❌ Already used" });
   }
 
