@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   }
 
   const { 'h-captcha-response': hcaptchaResponse } = req.body;
-  const secretKey = 'your-hcaptcha-secret-key'; // Replace with your hCaptcha secret key
+  const secretKey = 'ES_21a96b2773da463eb20321bd5c92417d'; // Replace with your hCaptcha secret key
 
   // Verify hCaptcha
   try {
