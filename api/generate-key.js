@@ -1,20 +1,20 @@
+import clientPromise from "../../lib/mongodb";
+
+function generateRandomKey(length = 16) {
+  return [...Array(length)].map(() => Math.random().toString(36)[2]).join("");
+}
+
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ success: false });
+  if (req.method !== "POST") {
+    return res.status(405).json({ success: false, message: "Only POST allowed" });
+  }
 
-  const { captcha } = req.body;
-  if (!captcha) return res.status(400).json({ success: false, error: "Missing captcha" });
+  const client = await clientPromise;
+  const db = client.db("vercel_db");
+  const keys = db.collection("keys");
 
-  const hcaptchaSecret = "ES_21a96b2773da463eb20321bd5c92417d";
+  const key = generateRandomKey();
+  await keys.insertOne({ key, used: false, createdAt: new Date() });
 
-  const verifyRes = await fetch("https://hcaptcha.com/siteverify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `response=${captcha}&secret=${hcaptchaSecret}`,
-  });
-
-  const data = await verifyRes.json();
-  if (!data.success) return res.status(403).json({ success: false, error: "Captcha failed" });
-
-  const key = [...Array(16)].map(() => Math.random().toString(36)[2]).join("");
-  res.json({ success: true, key });
+  return res.json({ success: true, key });
 }
